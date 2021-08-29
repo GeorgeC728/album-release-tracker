@@ -37,18 +37,20 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
 tracks_count = 500
 i = 0
 
-artist_list = pd.DataFrame(columns = ["artist"])
+artist_uri_df = pd.DataFrame(columns = ["artist"])
 
 while tracks_count != 50:
     tracks = sp.current_user_saved_tracks(limit = 50, offset = i * 50)["items"]
     tracks_count = len(tracks)
     for j in range(0, tracks_count - 1):
-        for k in range(0, len(tracks[j]["track"]["artists"])):
-            artist = pd.DataFrame([tracks[j]["track"]["artists"][k]["uri"]], columns = ["artist"])
-            artist_list = artist_list.append(artist)
+        artist_multiple_uri = tracks[j]["track"]["artists"]
+        for k in range(0, len(artist_multiple_uri)):
+            artist_single_uri = [tracks[j]["track"]["artists"][k]["uri"]]
+            artist_single_uri_df = pd.DataFrame(artist_single_uri, columns = ["artist"])
+            artist_uri_df = artist_uri_df.append(artist_single_uri_df)
     i += 1
 
-print(artist_list["artist"].unique())
+print(artist_uri_df["artist"].unique())
 
 #results = sp.current_user_saved_tracks(limit = 50, offset = 0)
 #for idx, item in enumerate(results['items']):
