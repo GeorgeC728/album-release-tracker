@@ -7,7 +7,7 @@ from spotipy.oauth2 import SpotifyClientCredentials         # Allows access non-
 from spotipy.oauth2 import SpotifyOAuth                     # Allows acessing user data for spotify API
 import os                                                   # Used for setting environment variables
 import pandas as pd                                         # For wrangling data
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 # Load the api key
 api_json = json.load(open("api-key.json"))
@@ -59,11 +59,13 @@ while tracks_count == 50:
 # The dataframe produced above will have duplicated artists so make a unique list
 artist_uri_unique = artist_uri_df["artist"].unique()
 
+print(len(artist_uri_unique))
+
 # We no longer need access to the users library so use the appropriate client
 spotify_client = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
 
 # Calculate the date cut off - 7 days from before. This could be modified to be more variable
-date_cutoff = date.today() - timedelta(days = 700)
+date_cutoff = date.today() - timedelta(days = 7)
 
 recent_album_df = pd.DataFrame(columns = ["name", "artist", "release_date"])
 
@@ -71,19 +73,25 @@ for artist_uri in artist_uri_unique:
     # Get most recent album by an artist
     album_list = spotify_client.artist_albums(artist_uri, album_type = "album")["items"]
 
-    if len(album_list) == 0:
-        break
-    latest_album = album_list[0]
-    album_release_date = date.fromisoformat(latest_album["release_date"])
+    if len(album_list) != 0:
+        latest_album = album_list[0]
+        #print(latest_album["name"])
+        if latest_album["release_date_precision"] == "day" :
+            album_release_date = date.fromisoformat(latest_album["release_date"])
+        if latest_album["release_date_precision"] == "month":
+            album_release_date = datetime.strptime(latest_album["release_date"], "%Y-%m").date()
+        if latest_album["release_date_precision"] == "year":
+            album_release_date = datetime.strptime(latest_album["release_date"], "%Y").date()
 
-    if album_release_date >= date_cutoff:
-        album_name = latest_album["name"]
-        album_artist = latest_album["artists"][0]["name"]
-        album_to_append_df = pd.DataFrame(
-            [[album_name, album_artist, album_release_date]],
-            columns = ["name", "artist", "release_date"])
-        recent_album_df = recent_album_df.append(album_to_append_df)
-        # Save album
+
+        if album_release_date >= date_cutoff:
+            album_name = latest_album["name"]
+            album_artist = latest_album["artists"][0]["name"]
+            album_to_append_df = pd.DataFrame(
+                [[album_name, album_artist, album_release_date]],
+                columns = ["name", "artist", "release_date"])
+            recent_album_df = recent_album_df.append(album_to_append_df)
+            # Save album
 
 print(recent_album_df)
 
