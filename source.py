@@ -69,49 +69,41 @@ date_cutoff = date.today() - timedelta(days = 7)
 
 recent_album_df = pd.DataFrame(columns = ["name", "artist", "release_date"])
 
+# Loop through the artists just found
 for artist_uri in artist_uri_unique:
-    # Get most recent album by an artist
+    # Get list of albums 
     album_list = spotify_client.artist_albums(artist_uri, album_type = "album")["items"]
 
+    # Check if artist has any albums
     if len(album_list) != 0:
+        # Get latest album
         latest_album = album_list[0]
-        #print(latest_album["name"])
+        # Need to extract a release date. How this is done depends on the release date precision
         if latest_album["release_date_precision"] == "day" :
+            # If we've got precision to a single day, extract in ISO format (yyyy-mm-dd)
             album_release_date = date.fromisoformat(latest_album["release_date"])
         if latest_album["release_date_precision"] == "month":
+            # If its to months, extract in the form yyyy-mm
             album_release_date = datetime.strptime(latest_album["release_date"], "%Y-%m").date()
         if latest_album["release_date_precision"] == "year":
+            # If only to year, extract in the form yyyy
             album_release_date = datetime.strptime(latest_album["release_date"], "%Y").date()
 
-
+        # Check if the album was released since the predefined date cut off
         if album_release_date >= date_cutoff:
+            # Get the album name
             album_name = latest_album["name"]
+            # Get the artist
             album_artist = latest_album["artists"][0]["name"]
+            # Create a row to append in the form of a data frame
             album_to_append_df = pd.DataFrame(
                 [[album_name, album_artist, album_release_date]],
                 columns = ["name", "artist", "release_date"])
+            # Append the row to the maste dataframe
             recent_album_df = recent_album_df.append(album_to_append_df)
             # Save album
 
 print(recent_album_df)
 
+# Save data
 recent_album_df.to_csv("data.csv")
-
-#tool_uri = 'spotify:artist:2yEwvVSSSUkcLeSTNyHKh8'
-#spotify = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
-#
-#results = spotify.artist_albums(tool_uri, album_type='album')
-#
-#albums = results['items']
-#while results['next']:
-#    results = spotify.next(results)
-#    albums.extend(results['items'])
-#
-#for album in albums:
-#    print(album["name"])
-#    print(album["release_date"])
-
-#results = sp.current_user_saved_tracks(limit = 50, offset = 0)
-#for idx, item in enumerate(results['items']):
-#    track = item['track']
-#    print(idx, track['artists'][0]['name'], " – ", track['name'])
