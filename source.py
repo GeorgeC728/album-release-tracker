@@ -7,6 +7,7 @@ from spotipy.oauth2 import SpotifyClientCredentials         # Allows access non-
 from spotipy.oauth2 import SpotifyOAuth                     # Allows acessing user data for spotify API
 import os                                                   # Used for setting environment variables
 import pandas as pd                                         # For wrangling data
+from datetime import date, timedelta
 
 # Load the api key
 api_json = json.load(open("api-key.json"))
@@ -25,7 +26,7 @@ scope = "user-library-read"
 spotify_client = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
 
 # These variables are used to loop through the users library until the end is reached
-tracks_count = 500
+tracks_count = 50
 i = 0
 
 # Create an empty datafram to save the artist URIs in
@@ -33,7 +34,7 @@ artist_uri_df = pd.DataFrame(columns = ["artist"])
 
 # Only 50 of the users tracks can be obtained at one time but the offset argument can allow the next 50 to be read.
 # If 50 tracks are requested but less than 50 comeback then the entire library has been read
-while tracks_count != 50:
+while tracks_count == 50:
     # Request 50 tracks
     tracks = spotify_client.current_user_saved_tracks(limit = 50, offset = i * 50)["items"]
     # See how many tracks were returned - this will break the loop if needed
@@ -55,8 +56,36 @@ while tracks_count != 50:
     # Increment i, this ensures the next 50 tracks are read in
     i += 1
 
-print(artist_uri_df["artist"].unique())
+# The dataframe produced above will have duplicated artists so make a unique list
+artist_uri_unique = artist_uri_df["artist"].unique()
 
+# We no longer need access to the users library so use the appropriate client
+spotify_client = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
+
+# Calculate the date cut off - 7 days from before. This could be modified to be more variable
+date_cutoff = date.today() - timedelta(days = 700)
+
+recent_album_df = pd.DataFrame(columns = ["name", "artist", "release_date"])
+
+for artist_uri in artist_uri_unique:
+    # Get most recent album by an artist
+    album_list = spotify_client.artist_albums(artist_uri, album_type = "album")["items"]
+
+    if len(album_list) == 0:
+        break
+    latest_album = album_list[0]
+    album_release_date = date.fromisoformat(latest_album["release_date"])
+
+    if album_release_date >= date_cutoff:
+        album_name = latest_album["name"]
+        album_artist = latest_album["artists"][0]["name"]
+        album_to_append_df = pd.DataFrame(
+            [[album_name, album_artist, album_release_date]],
+            columns = ["name", "artist", "release_date"])
+        recent_album_df = recent_album_df.append(album_to_append_df)
+        # Save album
+
+print(recent_album_df)
 
 #tool_uri = 'spotify:artist:2yEwvVSSSUkcLeSTNyHKh8'
 #spotify = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
