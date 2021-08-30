@@ -23,7 +23,7 @@ os.environ["SPOTIPY_REDIRECT_URI"] = api_json["redirect_uri"]
 scope = "user-library-read"
 
 # Authenticate with the spotify API
-spotify_client = spotipy.Spotify(auth_manager = SpotifyOAuth(scope = scope, cache_path = "cache/.cache"))
+spotify_client = spotipy.Spotify(auth_manager = SpotifyOAuth(scope = scope))
 
 # These variables are used to loop through the users library until the end is reached
 tracks_count = 50
@@ -107,3 +107,5 @@ print(recent_album_df)
 
 # Save data
 recent_album_df.to_csv("data.csv")
+
+
